@@ -8,7 +8,9 @@ interface QueueState {
   setQueues: (queues: IQueue[]) => void;
   filter: {
     status: string;
+    clinicId: string;
   };
+  setFilter: (filter: { key: string; value: string }) => void;
   totalElements: number;
   setTotalElements: (totalElements: number) => void;
   totalPages: number;
@@ -22,7 +24,15 @@ export const useQueueStore = create<QueueState>((set) => ({
   setQueues: (queues) => set({ queues }),
   filter: {
     status: "",
+    clinicId: "",
   },
+  setFilter: (filter) =>
+    set((state) => ({
+      filter: {
+        ...state.filter,
+        [filter.key]: filter.value,
+      },
+    })),
   totalElements: 0,
   setTotalElements: (totalElements) => set({ totalElements }),
   totalPages: 0,

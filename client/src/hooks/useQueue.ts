@@ -1,4 +1,4 @@
-import mainRequest from "@/api/mainRequest";
+import { getQueueClinic } from "@/services/queue.service";
 import { useQueueStore } from "@/store/queueStore";
 import { toast } from "react-toastify";
 
@@ -6,7 +6,7 @@ const useQueue = () => {
   const { setQueues, setTotalElements, setTotalPages } = useQueueStore();
   const fetchQueue = async (clinicId: string) => {
     try {
-      const response = await mainRequest.get(`/queues/${clinicId}`);
+      const response = await getQueueClinic(clinicId);
       setQueues(response.data.metadata.queueClinic);
       setTotalElements(response.data.metadata.total);
       setTotalPages(response.data.metadata.totalPages);
