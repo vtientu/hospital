@@ -51,7 +51,7 @@ model Patient {
   address         String?
   identity_number String?
   created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
+  updated_at      DateTime  @default(now()) @updatedAt
 
   examinationOrders ExaminationOrder[]
   records           ExaminationRecord[]
@@ -142,7 +142,7 @@ model ExaminationRecord {
   final_diagnosis    String?
   created_by_user_id Int?
   created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
+  updated_at         DateTime @default(now()) @updatedAt
 
   patient            Patient             @relation(fields: [patient_id], references: [id])
   primaryDoctor      User?               @relation("PrimaryDoctor", fields: [primary_doctor_id], references: [id])

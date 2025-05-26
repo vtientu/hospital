@@ -54,7 +54,7 @@ class QueueService {
     record_id,
     priority = 0,
   }) {
-    // 1. Tìm queue hiện tại của bệnh nhân (chưa done)
+    // 1. Tìm queue hiện tại của bệnh nhân (chưa done và đang khám)
     const currentQueue = await prisma.queue.findFirst({
       where: {
         patient_id,
@@ -82,6 +82,7 @@ class QueueService {
         },
       },
     });
+
     if (existing) {
       throw new Error("Bệnh nhân đã có trong hàng đợi phòng này.");
     }
@@ -113,7 +114,10 @@ class QueueService {
   static async updateQueueStatus(queueId, status) {
     const updated = await prisma.queue.update({
       where: { id: Number(queueId) },
-      data: { status },
+      data: {
+        status,
+        called_at: status === "in_progress" ? new Date() : null,
+      },
       include: { patient: true, clinic: true },
     });
     // Emit socket event

@@ -16,6 +16,7 @@ const ExaminationOrderModal = ({
     setAssignClinicId("");
     onClose();
   };
+  console.log(patient);
 
   if (!patient) return null;
 
@@ -33,7 +34,7 @@ const ExaminationOrderModal = ({
           <div className="border-b border-gray-200 w-full" />
           <div className="space-x-1.5 space-y-2 p-5 items-start w-full">
             <div className="mb-2">
-              Bệnh nhân: <b>{patient.patient.full_name}</b>
+              Bệnh nhân: <b>{patient?.full_name}</b>
             </div>
             <label htmlFor="assign-clinic" className="block mb-1">
               Chọn phòng khám:
@@ -72,7 +73,7 @@ const ExaminationOrderModal = ({
               try {
                 const mainRequest = (await import("@/api/mainRequest")).default;
                 await mainRequest.post("/queues/queue-clinic/assign", {
-                  patient_id: patient.patient_id,
+                  patient_id: patient.id,
                   to_clinic_id: Number(assignClinicId),
                   record_id: patient.record_id,
                   priority: 0,

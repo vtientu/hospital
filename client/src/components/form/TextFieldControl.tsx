@@ -8,6 +8,7 @@ interface TextFieldControlProps
   control: any;
   label?: string;
   helperText?: string;
+  rules?: any;
 }
 
 const TextFieldControl = ({
@@ -15,12 +16,14 @@ const TextFieldControl = ({
   control,
   label,
   helperText,
+  rules,
   ...props
 }: TextFieldControlProps) => {
   return (
     <Controller
       name={name}
       control={control}
+      rules={rules}
       render={({ field, fieldState }) => (
         <TextField
           {...field}

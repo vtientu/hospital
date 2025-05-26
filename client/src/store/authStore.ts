@@ -6,7 +6,7 @@ export type Role = "admin" | "staff" | "doctor" | "customer";
 interface AuthState {
   isAuthenticated: boolean;
   user: {
-    id: string;
+    id: number;
     name: string;
     role: Role;
   } | null;
@@ -17,7 +17,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: true,
   user: {
-    id: "1",
+    id: 1,
     name: "John Doe",
     role: "admin",
   },

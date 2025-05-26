@@ -9,6 +9,7 @@ interface SelectFieldControlProps
   label?: string;
   helperText?: string;
   options: { value: string | number; label: string }[];
+  rules?: any;
 }
 
 const SelectFieldControl = ({
@@ -17,12 +18,14 @@ const SelectFieldControl = ({
   label,
   helperText,
   options,
+  rules,
   ...props
 }: SelectFieldControlProps) => {
   return (
     <Controller
       name={name}
       control={control}
+      rules={rules}
       render={({ field, fieldState }) => (
         <SelectField
           {...field}

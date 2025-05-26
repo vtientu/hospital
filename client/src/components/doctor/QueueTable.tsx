@@ -8,6 +8,9 @@ import ExaminationOrderModal from "./ExaminationOrderModal";
 import { useSocket } from "@/hooks/useSocket";
 import { updateQueueStatus } from "@/services/queue.service";
 import { Ellipsis } from "lucide-react";
+import ResultExaminationModal from "./ResultExaminationModal";
+import ExaminationRecordModal from "@/components/doctor/ExaminationRecordModal";
+import { useAuthStore } from "@/store/authStore";
 
 const QueueTable = () => {
   const {
@@ -18,8 +21,7 @@ const QueueTable = () => {
     totalPages,
     reset,
   } = useQueueStore();
-  console.log(pagination, totalPages);
-
+  const [showResultModal, setShowResultModal] = useState(false);
   const [clinics, setClinics] = useState([]);
   const [selectedClinic, setSelectedClinic] = useState("");
   const { fetchQueue } = useQueue();
@@ -27,6 +29,9 @@ const QueueTable = () => {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [actionDropdown, setActionDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const { user } = useAuthStore();
+  const currentDoctorId = user?.id;
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -95,6 +100,16 @@ const QueueTable = () => {
     };
   }, [actionDropdown]);
 
+  const handleFinishExam = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowRecordModal(true);
+  };
+
+  const handleAssignClinic = (patient: any) => {
+    setSelectedPatient(patient);
+    setShowResultModal(true);
+  };
+
   return (
     <div className="flex flex-col w-full h-full">
       {/* Dropdown chọn phòng khám */}
@@ -143,7 +158,7 @@ const QueueTable = () => {
                     {getQueueStatus(queue.status)}
                   </td>
                   <td className="border border-gray-300 p-2 text-center">
-                    <div className="relative flex items-center justify-center gap-2">
+                    <div className="relative mx-auto w-10">
                       <button
                         className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
                         onClick={() =>
@@ -159,7 +174,7 @@ const QueueTable = () => {
                       {actionDropdown === queue.id.toString() && (
                         <div
                           ref={dropdownRef}
-                          className="absolute z-30 top-full right-0 bg-white border border-gray-300 rounded shadow-md min-w-[140px] text-left"
+                          className="absolute z-30 top-full right-0 left-0 bg-white border border-gray-300 rounded shadow-md min-w-[140px] text-left"
                         >
                           {queue.status === "waiting" && (
                             <>
@@ -194,29 +209,18 @@ const QueueTable = () => {
                           {queue.status === "in_progress" && (
                             <button
                               className="block w-full px-4 py-2 hover:bg-gray-100 text-left"
-                              onClick={async () => {
-                                await updateQueueStatus(
-                                  queue.id.toString(),
-                                  "done"
-                                );
-                                setActionDropdown(null);
-                                fetchQueue(selectedClinic);
-                              }}
+                              onClick={() => handleFinishExam(queue.patient)}
                             >
-                              Hoàn thành
+                              Khám xong
                             </button>
                           )}
                           {/* Chỉ định khám thêm khi đang khám */}
                           {queue.status === "in_progress" && (
                             <button
                               className="block w-full px-4 py-2 hover:bg-gray-100 text-left"
-                              onClick={() => {
-                                setSelectedPatient(queue);
-                                setShowAssignModal(true);
-                                setActionDropdown(null);
-                              }}
+                              onClick={() => handleAssignClinic(queue.patient)}
                             >
-                              Chỉ định khám thêm
+                              Chỉ định phòng tiếp
                             </button>
                           )}
                         </div>
@@ -277,6 +281,30 @@ const QueueTable = () => {
         selectedClinicId={selectedClinic}
         onSuccess={() => {
           setShowAssignModal(false);
+          setSelectedPatient(null);
+          fetchQueue(selectedClinic);
+        }}
+      />
+      <ExaminationRecordModal
+        open={showRecordModal}
+        onClose={() => setShowRecordModal(false)}
+        patientId={selectedPatient?.id}
+        doctorId={currentDoctorId}
+        onSuccess={() => {
+          setShowRecordModal(false);
+          setSelectedPatient(null);
+          fetchQueue(selectedClinic);
+        }}
+      />
+      <ResultExaminationModal
+        open={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        patientId={selectedPatient?.id}
+        clinicId={Number(selectedClinic)}
+        doctorId={currentDoctorId}
+        currentUserId={user?.id}
+        onSuccess={() => {
+          setShowResultModal(false);
           setSelectedPatient(null);
           fetchQueue(selectedClinic);
         }}
