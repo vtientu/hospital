@@ -1,20 +1,32 @@
 import { useQueueStore } from "@/store/queueStore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getClinics } from "@/services/clinic.service";
 import { toast } from "react-toastify";
 import useQueue from "@/hooks/useQueue";
-import mainRequest from "@/api/mainRequest";
+import { getQueueStatus } from "@/types/queue.type";
+import ExaminationOrderModal from "./ExaminationOrderModal";
+import { useSocket } from "@/hooks/useSocket";
+import { updateQueueStatus } from "@/services/queue.service";
+import { Ellipsis } from "lucide-react";
 
 const QueueTable = () => {
-  const { queues, pagination, totalElements, setPagination, totalPages } =
-    useQueueStore();
+  const {
+    queues,
+    pagination,
+    totalElements,
+    setPagination,
+    totalPages,
+    reset,
+  } = useQueueStore();
+  console.log(pagination, totalPages);
+
   const [clinics, setClinics] = useState([]);
   const [selectedClinic, setSelectedClinic] = useState("");
   const { fetchQueue } = useQueue();
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
-  const [assignClinicId, setAssignClinicId] = useState("");
-  const [assignLoading, setAssignLoading] = useState(false);
+  const [actionDropdown, setActionDropdown] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -37,8 +49,20 @@ const QueueTable = () => {
   useEffect(() => {
     if (selectedClinic) {
       fetchQueue(selectedClinic);
+    } else {
+      reset();
     }
-  }, [selectedClinic, fetchQueue]);
+  }, [selectedClinic]);
+
+  useSocket(
+    `clinic_${selectedClinic}`,
+    "queue:assigned",
+    (data: { clinicId: string | number }) => {
+      if (data.clinicId?.toString() === selectedClinic.toString()) {
+        fetchQueue(selectedClinic);
+      }
+    }
+  );
 
   useEffect(() => {
     const tableEl = document.getElementById("table-container");
@@ -53,6 +77,23 @@ const QueueTable = () => {
       }px`;
     }
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setActionDropdown(null);
+      }
+    }
+    if (actionDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [actionDropdown]);
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -96,22 +137,90 @@ const QueueTable = () => {
                       (pagination?.pageNumber - 1) * pagination?.pageSize}
                   </td>
                   <td className="border border-gray-300 p-2">
-                    {queue.patient_name}
-                  </td>
-                  <td className="border border-gray-300 p-2 text-right">
-                    {queue.status}
+                    {queue?.patient?.full_name}
                   </td>
                   <td className="border border-gray-300 p-2 text-center">
-                    <div className="relative dropdown-container flex items-center justify-center gap-2">
+                    {getQueueStatus(queue.status)}
+                  </td>
+                  <td className="border border-gray-300 p-2 text-center">
+                    <div className="relative flex items-center justify-center gap-2">
                       <button
-                        className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs"
-                        onClick={() => {
-                          setSelectedPatient(queue);
-                          setShowAssignModal(true);
-                        }}
+                        className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-xs"
+                        onClick={() =>
+                          setActionDropdown(
+                            actionDropdown === queue.id.toString()
+                              ? null
+                              : queue.id.toString()
+                          )
+                        }
                       >
-                        Chỉ định khám thêm
+                        <Ellipsis className="w-4 h-4" />
                       </button>
+                      {actionDropdown === queue.id.toString() && (
+                        <div
+                          ref={dropdownRef}
+                          className="absolute z-30 top-full right-0 bg-white border border-gray-300 rounded shadow-md min-w-[140px] text-left"
+                        >
+                          {queue.status === "waiting" && (
+                            <>
+                              <button
+                                className="block w-full px-4 py-2 hover:bg-gray-100 text-left"
+                                onClick={async () => {
+                                  await updateQueueStatus(
+                                    queue.id.toString(),
+                                    "in_progress"
+                                  );
+                                  setActionDropdown(null);
+                                  fetchQueue(selectedClinic);
+                                }}
+                              >
+                                Bắt đầu khám
+                              </button>
+                              <button
+                                className="block w-full px-4 py-2 hover:bg-gray-100 text-left"
+                                onClick={async () => {
+                                  await updateQueueStatus(
+                                    queue.id.toString(),
+                                    "skipped"
+                                  );
+                                  setActionDropdown(null);
+                                  fetchQueue(selectedClinic);
+                                }}
+                              >
+                                Bỏ qua
+                              </button>
+                            </>
+                          )}
+                          {queue.status === "in_progress" && (
+                            <button
+                              className="block w-full px-4 py-2 hover:bg-gray-100 text-left"
+                              onClick={async () => {
+                                await updateQueueStatus(
+                                  queue.id.toString(),
+                                  "done"
+                                );
+                                setActionDropdown(null);
+                                fetchQueue(selectedClinic);
+                              }}
+                            >
+                              Hoàn thành
+                            </button>
+                          )}
+                          {/* Chỉ định khám thêm khi đang khám */}
+                          {queue.status === "in_progress" && (
+                            <button
+                              className="block w-full px-4 py-2 hover:bg-gray-100 text-left"
+                              onClick={() => {
+                                setSelectedPatient(queue);
+                                setShowAssignModal(true);
+                                setActionDropdown(null);
+                              }}
+                            >
+                              Chỉ định khám thêm
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -131,7 +240,7 @@ const QueueTable = () => {
           </p>
           <div className="flex items-center gap-2">
             <button
-              className="border border-gray-300 bg-white px-2 py-1 rounded-md hover:bg-gray-100"
+              className="border border-gray-300 bg-white px-2 py-1 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() =>
                 setPagination({
                   ...pagination,
@@ -143,90 +252,35 @@ const QueueTable = () => {
               Trước
             </button>
             <button
-              className="border border-gray-300 bg-white px-2 py-1 rounded-md hover:bg-gray-100"
+              className="border border-gray-300 bg-white px-2 py-1 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() =>
                 setPagination({
                   ...pagination,
                   pageNumber: pagination.pageNumber + 1,
                 })
               }
-              disabled={pagination.pageNumber === totalPages}
+              disabled={pagination.pageNumber >= totalPages}
             >
               Tiếp
             </button>
           </div>
         </div>
       </div>
-      {/* Modal chỉ định khám thêm */}
-      {showAssignModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 min-w-[320px] shadow-lg">
-            <h2 className="text-lg font-semibold mb-4">
-              Chỉ định khám thêm cho bệnh nhân
-            </h2>
-            <div className="mb-4">
-              <div className="mb-2">
-                Bệnh nhân: <b>{selectedPatient.patient_name}</b>
-              </div>
-              <label htmlFor="assign-clinic" className="block mb-1">
-                Chọn phòng khám:
-              </label>
-              <select
-                id="assign-clinic"
-                value={assignClinicId}
-                onChange={(e) => setAssignClinicId(e.target.value)}
-                className="border border-gray-300 rounded-md p-2 w-full"
-              >
-                <option value="">-- Chọn phòng --</option>
-                {clinics
-                  .filter((c: any) => c.id !== selectedClinic)
-                  .map((clinic: any) => (
-                    <option key={clinic.id} value={clinic.id}>
-                      {clinic.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
-                onClick={() => {
-                  setShowAssignModal(false);
-                  setAssignClinicId("");
-                  setSelectedPatient(null);
-                }}
-              >
-                Hủy
-              </button>
-              <button
-                className="px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50"
-                disabled={!assignClinicId || assignLoading}
-                onClick={async () => {
-                  setAssignLoading(true);
-                  try {
-                    await mainRequest.post("/queues/queue-clinic/assign", {
-                      patient_id: selectedPatient.patient_id,
-                      to_clinic_id: Number(assignClinicId),
-                      record_id: selectedPatient.record_id,
-                      priority: 0,
-                    });
-                    alert("Chỉ định thành công!");
-                    setShowAssignModal(false);
-                    setAssignClinicId("");
-                    setSelectedPatient(null);
-                  } catch (err: any) {
-                    alert(err?.response?.data?.message || "Có lỗi xảy ra!");
-                  } finally {
-                    setAssignLoading(false);
-                  }
-                }}
-              >
-                Xác nhận
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExaminationOrderModal
+        open={showAssignModal && !!selectedPatient}
+        onClose={() => {
+          setShowAssignModal(false);
+          setSelectedPatient(null);
+        }}
+        patient={selectedPatient}
+        clinics={clinics}
+        selectedClinicId={selectedClinic}
+        onSuccess={() => {
+          setShowAssignModal(false);
+          setSelectedPatient(null);
+          fetchQueue(selectedClinic);
+        }}
+      />
     </div>
   );
 };

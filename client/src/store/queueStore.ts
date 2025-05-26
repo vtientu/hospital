@@ -17,6 +17,7 @@ interface QueueState {
   setTotalPages: (totalPages: number) => void;
   pagination: IPagination;
   setPagination: (pagination: IPagination) => void;
+  reset: () => void;
 }
 
 export const useQueueStore = create<QueueState>((set) => ({
@@ -39,4 +40,12 @@ export const useQueueStore = create<QueueState>((set) => ({
   setTotalPages: (totalPages) => set({ totalPages }),
   pagination: DEFAULT_PAGINATION,
   setPagination: (pagination) => set({ pagination }),
+  reset: () =>
+    set({
+      queues: [],
+      filter: { status: "", clinicId: "" },
+      totalElements: 0,
+      totalPages: 0,
+      pagination: DEFAULT_PAGINATION,
+    }),
 }));
