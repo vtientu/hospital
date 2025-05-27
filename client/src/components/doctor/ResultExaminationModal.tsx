@@ -163,10 +163,10 @@ const ResultExaminationModal = ({
                   }`}
                 >
                   {clinicSelected.patient_volume === "high"
-                    ? "Cao"
+                    ? "Đông"
                     : clinicSelected.patient_volume === "medium"
-                    ? "Trung bình"
-                    : "Thấp"}
+                    ? "Vừa phải"
+                    : "Ít"}
                 </span>
               </div>
             )}

@@ -26,6 +26,11 @@ class QueueService {
           in: ["waiting", "in_progress"],
         },
       },
+
+      // Đoạn orderBy này sắp xếp các mục trong hàng đợi theo thứ tự:
+      // 1. Trước tiên theo 'priority' giảm dần, tức là các mục có mức độ ưu tiên cao sẽ được xử lý trước.
+      // 2. Nếu có nhiều mục có cùng mức độ ưu tiên, chúng sẽ được sắp xếp tiếp theo 'created_at' giảm dần,
+      //    tức là mục được tạo gần đây hơn sẽ đứng trước.
       orderBy: [{ priority: "desc" }, { created_at: "desc" }],
       skip: (pageNumber - 1) * pageSize,
       take: pageSize,
