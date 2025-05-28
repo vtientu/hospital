@@ -5,6 +5,7 @@ import SelectFieldControl from "@/components/form/SelectFieldControl";
 import mainRequest from "@/api/mainRequest";
 import { useState, useEffect } from "react";
 import { getClinics } from "@/services/clinic.service";
+import { toast } from "react-toastify";
 
 const statusOptions = [
   { value: "pending", label: "Chờ khám" },
@@ -73,7 +74,7 @@ const ResultExaminationModal = ({
       if (onSuccess) onSuccess();
       handleClose();
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Có lỗi xảy ra!");
+      toast.error(err?.response?.data?.message || "Có lỗi xảy ra!");
     } finally {
       setLoading(false);
     }

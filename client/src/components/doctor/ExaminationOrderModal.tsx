@@ -1,5 +1,6 @@
 import Modal from "@/components/ui/Modal";
 import { useState } from "react";
+import { toast } from "react-toastify";
 
 const ExaminationOrderModal = ({
   open,
@@ -81,7 +82,7 @@ const ExaminationOrderModal = ({
                 if (onSuccess) onSuccess();
                 setAssignClinicId("");
               } catch (err: any) {
-                alert(err?.response?.data?.message || "Có lỗi xảy ra!");
+                toast.error(err?.response?.data?.message || "Có lỗi xảy ra!");
               } finally {
                 setAssignLoading(false);
               }
